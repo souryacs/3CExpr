@@ -709,7 +709,7 @@ def main():
             ## output file which will store the performance summary in a data frame
             ## for individual combinations of test and validation chromosomes
             ## stores the loss and correlation statistics
-            FinalSummaryFile = BaseOutDir + "/" + SampleLabel + "/TestModel/contact_mat_FDR_" + str(FDRThr) + "/" + CurrCAGETrackLabel + "/Final_Summary_Metrics.csv"
+            FinalSummaryFile = BaseOutDir + "/" + SampleLabel + "/TestModel/contact_mat_FDR_" + str(FDRThr) + "/" + CurrCAGETrackLabel + "/Final_Summary_Metrics.txt"
 
             ## open output log file and dump all the prints
             old_stdout = sys.stdout
