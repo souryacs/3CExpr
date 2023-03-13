@@ -1,0 +1,52 @@
+#==================================== 
+## configuration file for EPI prediction
+## GM12878 H3K27ac HiChIP data and FitHiChIP loops
+#==================================== 
+
+##=========
+## Global parameters
+##=========
+General:
+  Genome: "hg19"
+  ChrSize: "/home/sourya/Data/chrsize/chrom_hg19.sizes"
+  GTF: "/home/sourya/Data/GTF/hg19/hg19_TSS.gtf"
+  OutDir: "/home/sourya/Res/EPI_Prediction"
+  BlackList: "/home/sourya/Data/Blacklist_Genome/hg19/ENCFF001TDO.bed"
+  Fasta: "/home/sourya/Data/Fasta/hg19/hg19.fa"
+
+##=========
+## HiChIP loop related parameters
+##=========
+Loop:
+  ## 5 Kb loop resolution
+  resolution: 5000
+  loopfile: "/home/sourya/Res/FitHiChIP_Loops/GM12878_H3K27ac_Mumbach_NatMeth2017/MergedReplAll/FitHiChIP_Peak2ALL_b5000_L20000_U2000000/P2PBckgr_0/Coverage_Bias/FitHiC_BiasCorr/FitHiChIP.interactions_FitHiC.bed"
+  FDRThr: 0.01
+  SampleLabel: "GM12878_H3K27ac_HiChIP"
+
+##=========
+## Epigenome parameters
+##=========
+Epigenome:
+  ## CAGE bin resolution - 5 Kb
+  CAGEBinSize: 5000
+  ## epigenomic track resolution - 100 bp
+  EpiBinSize: 100
+  ## list of CAGE tracks - comma or colon separated list
+  CAGETrack: "/home/sourya/Data/GM12878/CAGE/ENCFF915EIJ_Deeptools_RPGC_binsize_5000bp.bw:/home/sourya/Data/GM12878/CAGE/ENCFF990KLZ_Deeptools_RPGC_binsize_5000bp.bw"
+  ## label of these tracks
+  CAGELabel: "CAGE_ENCFF915EIJ:CAGE_ENCFF990KLZ"
+  ## list of epigenomic tracks - comma or colon separated list
+  EpiTrack: "/home/sourya/Data/GM12878/DNase/ENCFF775ZJX_Deeptools_RPGC_binsize_100bp.bw:/home/sourya/Data/GM12878/DNase/ENCFF783ZLL_Deeptools_RPGC_binsize_100bp.bw:/home/sourya/Data/GM12878/H3K27ac/ENCFF197QHX_Deeptools_RPGC_binsize_100bp.bw:/home/sourya/Data/GM12878/H3K27ac/ENCFF882PRP_Deeptools_RPGC_binsize_100bp.bw:/home/sourya/Data/GM12878/H3K4me3/ENCFF342CXS_Deeptools_RPGC_binsize_100bp.bw:/home/sourya/Data/GM12878/H3K4me3/ENCFF818UQV_Deeptools_RPGC_binsize_100bp.bw"
+  ## label of these tracks
+  EpiLabel: "DNase_ENCFF775ZJX:DNase_ENCFF783ZLL:H3K27ac_ENCFF197QHX:H3K27ac_ENCFF882PRP:H3K4me3_ENCFF342CXS:H3K4me3_ENCFF818UQV"
+
+##=========
+## Model parameters
+##=========
+Model:
+  ## total window size - 6 Mb
+  Span: 6000000
+  ## sliding window size - 2 Mb
+  Offset: 2000000
+

@@ -1,0 +1,52 @@
+{
+    "__default__" :
+    {
+        "walltime" : "walltime=04:00:00",
+        "cores" : "nodes=1:ppn=1",
+        "memory" : "mem=3GB",
+        "output" : "{rule}.{wildcards}.out",
+        "error" : "{rule}.{wildcards}.err"
+    },
+    "write_seq" :
+    {
+        "walltime" : "walltime=2:00:00",
+        "cores" : "nodes=1:ppn=1",
+        "memory" : "mem=10GB"
+    },
+    "TSS_to_Bin" :
+    {
+        "walltime" : "walltime=2:00:00",
+        "cores" : "nodes=1:ppn=1",
+        "memory" : "mem=10GB"
+    },
+    "FitHiChIP_Loop_to_Graph" :
+    {
+        "walltime" : "walltime=10:00:00",
+        "cores" : "nodes=1:ppn=1",
+        "memory" : "mem=40GB"
+    },
+    "data_read" :
+    {
+        "walltime" : "walltime=10:00:00",
+        "cores" : "nodes=1:ppn=1",
+        "memory" : "mem=10GB"
+    },
+    "data_write" :
+    {
+        "walltime" : "walltime=20:00:00",
+        "cores" : "nodes=1:ppn=1",
+        "memory" : "mem=40GB"
+    },
+    "trainmodel" :
+    {
+        "walltime" : "walltime=20:00:00",
+        "cores" : "nodes=1:ppn=1",
+        "memory" : "mem=40GB"
+    },
+    "testmodel" :
+    {
+        "walltime" : "walltime=04:00:00",
+        "cores" : "nodes=1:ppn=1",
+        "memory" : "mem=20GB"
+    }
+}
