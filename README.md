@@ -94,7 +94,7 @@ The sample configuration file provided (*configfile_GM12878.yaml*) lists the fol
 Output
 =========
 
-Check the file *OutDir*/*SampleLabel*/TestModel/contact_mat_FDR_*FDRThr*/*CAGELabel*/Final_Summary_Metrics.csv
+Check the file *OutDir*/*SampleLabel*/TestModel/contact_mat_FDR_*FDRThr*/*CAGELabel*/Final_Summary_Metrics.txt
 
 It lists the NLL (negative log likelihood), rho and sp (correlation) values for individual sets of validation and test chromosomes (remaining chromosomes are used for training the model).
 
