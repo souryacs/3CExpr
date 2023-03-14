@@ -83,7 +83,7 @@ The sample configuration file provided (*configfile_GM12878.yaml*) lists the fol
 
 		*Note*: To edit the CAGE track bin sizes, check the script *data_download.sh* where the parameter *Binsize_CAGE* is mentioned (and the CAGE bigwig tracks are created according to the bin size). We used 5 Kb for CAGE bin size and FitHiChIP loops, as suggested in the Genome Research paper.
 
-		*Note*: *CAGETrack* and *CAGELabel*a are comma / colon separated lists. We can use multiple CAGE files, if available. Prediction results for individual CAGE files will be reported. Note that, number of tracks and number of labels should be identical.
+		*Note*: *CAGETrack* and *CAGELabel* are comma / colon separated lists. We can use multiple CAGE files, if available. Prediction results for individual CAGE files will be reported. Note that, number of tracks and number of labels should be identical.
 
 	6. *EpiTrack*, *EpiLabel* and *EpiBinSize*: Epigenome track lists, their labels, and bin sizes. We used 100 bp for bin size as suggested in the Genome Research paper. To edit the bin sizes (and respective bigwig tracks), please check script *data_download.sh*.
 
@@ -94,11 +94,15 @@ The sample configuration file provided (*configfile_GM12878.yaml*) lists the fol
 Output
 =========
 
-Check the file *OutDir*/*SampleLabel*/TestModel/contact_mat_FDR_*FDRThr*/*CAGELabel*/Final_Summary_Metrics.txt
+1) Check the file *OutDir*/*SampleLabel*/TestModel/contact_mat_FDR_*FDRThr*/*CAGELabel*/Final_Summary_Metrics.csv
 
 It lists the NLL (negative log likelihood), rho and sp (correlation) values for individual sets of validation and test chromosomes (remaining chromosomes are used for training the model).
 
 	*Note* For details of these output parameters, please check the Genome Research paper.
+
+2) Check the file *OutDir*/*SampleLabel*/TestModel/contact_mat_FDR_*FDRThr*/valid_chr_*/df_all_predictions.csv
+
+Lists the true and predicted gene expressions for individual bins, as well as the overlapping genes and number of HiChIP contacts associated.
 
 
 Queries
