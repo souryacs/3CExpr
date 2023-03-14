@@ -3,8 +3,6 @@ import numpy as np
 import pandas as pd
 import time
 import os
-# import configparser
-import yaml
 
 ##======================
 ## Sourya
@@ -20,7 +18,11 @@ def parse_options():
     usage = 'usage: %prog [options]'
     parser = OptionParser(usage)
 
-    parser.add_option('-C', dest='configfile', default=None, type='str', help='Configuration file. Mandatory parameter.')
+    parser.add_option('-g', dest='refgenome', default=None, type='str', help='Reference Genome. Mandatory parameter.')
+    parser.add_option('-c', dest='chrsizefile', default=None, type='str', help='Reference Genome specific chromosome size file. Mandatory parameter.')
+    parser.add_option('-O', dest='BaseOutDir', default=None, type='str', help='Base output directory. Mandatory parameter.')
+    parser.add_option('-r', dest='Resolution', default=5000, type='int', help='Loop resolution. Default 5000 (5 Kb)')
+    parser.add_option('-T', dest='GTF', default=None, type='str', help='Reference Genome specific GTF file. Mandatory parameter.')
 
     (options, args) = parser.parse_args()
     return options, args
@@ -31,18 +33,11 @@ def parse_options():
 def main():
     options, args = parse_options()
 
-    ## read the input configuration file
-    # config = configparser.ConfigParser()
-    # config.read(options.configfile)
-
-    config_fp = open(options.configfile, "r")
-    config = yaml.load(config_fp, Loader=yaml.FullLoader)
-
-    refgenome = config['General']['Genome']
-    filename_tss = config['General']['GTF']
-    BaseOutDir = config['General']['OutDir']
-    chrsizefile = config['General']['ChrSize']
-    Resolution = int(config['Loop']['resolution'])
+    refgenome = options.refgenome
+    chrsizefile = options.chrsizefile
+    BaseOutDir = options.BaseOutDir
+    Resolution = int(options.Resolution)
+    filename_tss = options.GTF
 
     OutDir = BaseOutDir + '/TSS/' + refgenome + '/' + str(Resolution)
     if not os.path.exists(OutDir):

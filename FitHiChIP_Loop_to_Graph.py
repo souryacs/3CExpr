@@ -7,8 +7,6 @@ import scipy.sparse
 import sys
 import subprocess
 import math
-# import configparser
-import yaml
 
 ##======================
 ## Sourya
@@ -24,7 +22,13 @@ import yaml
 def parse_options():  
     usage = 'usage: %prog [options]'
     parser = OptionParser(usage)    
-    parser.add_option('-C', dest='configfile', default=None, type='str', help='Configuration file. Mandatory parameter.')
+    parser.add_option('-g', dest='refgenome', default=None, type='str', help='Reference Genome. Mandatory parameter.')
+    parser.add_option('-c', dest='chrsizefile', default=None, type='str', help='Reference Genome specific chromosome size file. Mandatory parameter.')
+    parser.add_option('-O', dest='BaseOutDir', default=None, type='str', help='Base output directory. Mandatory parameter.')
+    parser.add_option('-r', dest='Resolution', default=5000, type='int', help='Loop resolution. Default 5000 (5 Kb)')
+    parser.add_option('-f', dest='FDRThr', default=0.01, type='float', help='FDR threshold of Loops. Default 0.01')
+    parser.add_option('-l', dest='LoopFile', default=None, type='str', help='Loop file. Mandatory parameter.')
+    parser.add_option('-n', dest='SampleLabel', default=None, type='str', help='Sample label. Mandatory parameter.')
     
     (options, args) = parser.parse_args()
     return options, args
@@ -35,20 +39,13 @@ def parse_options():
 def main():
     options, args = parse_options()
 
-    ## read the input configuration file
-    # config = configparser.ConfigParser()
-    # config.read(options.configfile)
-
-    config_fp = open(options.configfile, "r")
-    config = yaml.load(config_fp, Loader=yaml.FullLoader)    
-
-    refgenome = config['General']['Genome']
-    BaseOutDir = config['General']['OutDir']
-    chrsizefile = config['General']['ChrSize']
-    FDRThr = float(config['Loop']['FDRThr'])
-    LoopFile = config['Loop']['loopfile']
-    Resolution = int(config['Loop']['resolution'])
-    SampleLabel = config['Loop']['SampleLabel']
+    refgenome = options.refgenome
+    chrsizefile = options.chrsizefile
+    BaseOutDir = options.BaseOutDir
+    Resolution = int(options.Resolution)
+    FDRThr = float(options.FDRThr)
+    LoopFile = options.LoopFile
+    SampleLabel = options.SampleLabel 
 
     CurrOutDir = BaseOutDir + "/" + SampleLabel + "/FitHiChIP_to_mat/contact_mat_FDR_" + str(FDRThr)
     if not os.path.exists(CurrOutDir):
@@ -72,7 +69,14 @@ def main():
 
         print("\n\n ==>> Extracting loop information for the chromosome : " + str(currchr))
 
-        ## extract chromosome, start of first interacting bin, start of second interacting bin, FDR and contact count
+        ##===================
+        ## Features from HiChIP loops
+        ## 1) chromosome
+        ## 2) start of first interacting bin
+        ## 3) start of second interacting bin
+        ## 4) contact count
+        ## 5) FDR (q-value)
+        ##===================
         tempfile = CurrOutDir + "/temp_contact_" + str(currchr) + ".txt"
         sys_cmd = "awk \'{if ((NR>1) && ($1 == \"" + str(currchr) + "\") && ($NF < " + str(FDRThr) + ")) {print $1\"\t\"$2\"\t\"$5\"\t\"$NF\"\t\"$7}}\' " + str(LoopFile) + " > " + str(tempfile)
         os.system(sys_cmd)
@@ -94,7 +98,9 @@ def main():
         if 0:
             print(seq_dataframe)
 
+        ##==================
         ##### write the whole hic matrix for a chromosome as a sparse matrix #####
+        ##==================
 
         ## number of intervals for this chromosome
         nodes_list_all = sorted(list(set(seq_dataframe['start'].values)))
@@ -127,9 +133,12 @@ def main():
         #             if 0:
         #                 print(cut['count'].values)
 
+        ##====================
         ## new code - much simpler
         ## compatible to FitHiChIP format
-        ## (start_bin, end_bin, contact count)
+        ##====================
+        ## 3 features are written in the final matrix:
+        ## 1) start of 1st interacting bin, 2) start of 2nd interacting bin, 3) contact count
         if 1:
             ## the astype(int) conversion is very important - other numpy stores as floating point numbers
             bin1_idx = (hic_dataframe['start_i'].values / Resolution).astype(int)
@@ -140,12 +149,14 @@ def main():
         ## create symmetric matrix
         ## store as numpy sparse matrix
         hic_t = hic.transpose()
-        hic_sym = hic + hic_t
-        #row_max = np.max(hic_sym, axis=1)
-        #print('hic_max: ', row_max)
-        #hic_sym = hic_sym + np.diag(row_max)
+        hic_sym = hic + hic_t    
+        if 0:
+            row_max = np.max(hic_sym, axis=1)
+            print('hic_max: ', row_max)
+            hic_sym = hic_sym + np.diag(row_max)
         hic_sym = hic_sym.astype(np.float32)
-        # print(hic_sym[2000:2020,2000:2020])
+        if 0:
+            print(hic_sym[2000:2020,2000:2020])
         sparse_matrix = scipy.sparse.csr_matrix(hic_sym)
 
         ## write the HiC matrix        

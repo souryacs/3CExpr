@@ -44,8 +44,6 @@ from matplotlib.colors import LinearSegmentedColormap
 from UtilFunc_Epigenomic_Model import *
 
 import re
-# import configparser
-import yaml
 
 ## debug variable 
 debug_text = True
@@ -118,9 +116,25 @@ def parse_options():
     usage = 'usage: %prog [options]'
     parser = OptionParser(usage)
 
-    parser.add_option('-C', dest='configfile', default=None, type='str', help='Configuration file. Mandatory parameter.'),
-    parser.add_option('-M', dest='Model', default="epi", type='str', help='Prediction model. Either seq or epi. Default = epi'),    
-    parser.add_option('-v', dest='valid_chr', default='1,11', type='str', help="Comma separated list (numbers) of the validation chromosomes. Default 1,11 means that chr1 and chr11 would be used as the validation chromosomes."),
+    parser.add_option('-M', dest='Model', default="epi", type='str', help='Prediction model. Either seq or epi. Default = epi')
+    
+    parser.add_option('--Span', dest='Span', default=6000000, type='int', help='Span (complete window). Default = 6000000 (6 Mb), as suggested in the paper.'),
+    parser.add_option('--Offset', dest='Offset', default=2000000, type='int', help='Offset (middle portion / sliding window). Default = 2000000 (2 Mb), as suggested in the paper.'),
+
+    parser.add_option('-g', dest='refgenome', default=None, type='str', help='Reference Genome. Mandatory parameter.')
+    parser.add_option('-O', dest='BaseOutDir', default=None, type='str', help='Base output directory. Mandatory parameter.')
+    parser.add_option('-c', dest='chrsizefile', default=None, type='str', help='Reference Genome specific chromosome size file. Mandatory parameter.')
+    parser.add_option('-r', dest='Resolution', default=5000, type='int', help='Loop resolution. Default 5000 (5 Kb)')
+    parser.add_option('-n', dest='SampleLabel', default=None, type='str', help='Sample label. Mandatory parameter.')
+    parser.add_option('-f', dest='FDRThr', default=0.01, type='float', help='FDR threshold of Loops. Default 0.01')
+    parser.add_option('-C', dest='CAGEBinSize', default=5000, type='int', help='CAGE bin size. Default 5000 (5 Kb)')
+    parser.add_option('-E', dest='EpiBinSize', default=5000, type='int', help='Epigenomic track bin size. Default 100 bp')
+    parser.add_option('-X', dest='CAGETrackList', default=None, type='str', help='Comma or colon separated CAGE track list. Mandatory parameter.')
+    parser.add_option('-Y', dest='EpiTrackList', default=None, type='str', help='Comma or colon separated Epigenome track list. Mandatory parameter.')
+    parser.add_option('-x', dest='CAGELabelList', default=None, type='str', help='Comma or colon separated CAGE track label list. Mandatory parameter.')
+    parser.add_option('-y', dest='EpiLabelList', default=None, type='str', help='Comma or colon separated Epigenome track label list. Mandatory parameter.')
+
+    parser.add_option('-v', dest='valid_chr', default='1,11', type='str', help="Comma separated list (numbers) of the validation chromosomes. Default 1,11 means that chr1 and chr11 would be used as the validation chromosomes.")
     parser.add_option('-t', dest='test_chr', default='2,12', type='str', help="Comma separated list (numbers) of the test chromosomes. Default 2,12 means that chr2 and chr12 would be used as the test chromosomes.")
 
     (options, args) = parser.parse_args()
@@ -132,39 +146,33 @@ def parse_options():
 def main():
     options, args = parse_options()
 
-    ## read the input configuration file
-    # config = configparser.ConfigParser()
-    # config.read(options.configfile)
-
-    config_fp = open(options.configfile, "r")
-    config = yaml.load(config_fp, Loader=yaml.FullLoader)
-
     ##=============
     ## configuration file parameters
     ##=============
-    refgenome = config['General']['Genome']
-    BaseOutDir = config['General']['OutDir']
-    Resolution = int(config['Loop']['resolution'])
-    SampleLabel = config['Loop']['SampleLabel']
-    chrsizefile = config['General']['ChrSize']
-    FDRThr = float(config['Loop']['FDRThr'])
-    
-    ## total span of a genomic region considered at a time
-    ## default = 6 Mb
-    Span = int(config['Model']['Span'])
-    ## Sliding window - default = 2 Mb
-    Offset = int(config['Model']['Offset'])
 
-    CAGEBinSize = int(config['Epigenome']['CAGEBinSize'])
-    EpiBinSize = int(config['Epigenome']['EpiBinSize'])
+    refgenome = options.refgenome
+    BaseOutDir = options.BaseOutDir
+    Resolution = int(options.Resolution)
+    SampleLabel = options.SampleLabel 
+    chrsizefile = options.chrsizefile
+    FDRThr = float(options.FDRThr)
+
+    CAGEBinSize = int(options.CAGEBinSize)
+    EpiBinSize = int(options.EpiBinSize)
+
     ## track list using comma or colon as delimiter
-    CAGETrackList = re.split(r':|,', config['Epigenome']['CAGETrack']) 
+    CAGETrackList = re.split(r':|,', options.CAGETrackList) 
     ## track list using comma or colon as delimiter
-    EpiTrackList = re.split(r':|,', config['Epigenome']['EpiTrack']) 
+    EpiTrackList = re.split(r':|,', options.EpiTrackList) 
+
     ## label list using comma or colon as delimiter
-    CAGELabelList = re.split(r':|,', config['Epigenome']['CAGELabel']) 
+    CAGELabelList = re.split(r':|,', options.CAGELabelList) 
     ## label list using comma or colon as delimiter
-    EpiLabelList = re.split(r':|,', config['Epigenome']['EpiLabel']) 
+    EpiLabelList = re.split(r':|,', options.EpiLabelList) 
+    ## default = 6 Mb
+    Span = int(options.Span)
+    ## Sliding window - default = 2 Mb
+    Offset = int(options.Offset)
 
     ##=================
     ## derived parameters
@@ -866,7 +874,7 @@ def main():
             df_all_predictions.to_csv(TestOutDir + '/df_all_predictions.csv', sep="\t", index=False)            
 
             ## define the summary metric data frame
-            SummaryDF = pd.DataFrame(data={'Validation_chr': [options.valid_chr], 'Test_chr': [options.test_chr], 'NLL_GAT_MinExpr_0_MinContact_0': [valid_loss_gat[0].astype(np.int64)], 'NLL_GAT_MinExpr_5_MinContact_0': [valid_loss_gat[1].astype(np.int64)], 'NLL_GAT_MinExpr_5_MinContact_1': [valid_loss_gat[2].astype(np.int64)], 'NLL_GAT_MinExpr_5_MinContact_5': [valid_loss_gat[3].astype(np.int64)], 'NLL_GAT_Mean': [np.mean(valid_loss_gat, axis=0)], 'NLL_GAT_std': [np.std(valid_loss_gat, axis=0)], 'rho_MinExpr_0_MinContact_0': [valid_rho_gat[0].astype(np.int64)], 'rho_MinExpr_5_MinContact_0': [valid_rho_gat[1].astype(np.int64)], 'rho_MinExpr_5_MinContact_1': [valid_rho_gat[2].astype(np.int64)], 'rho_MinExpr_5_MinContact_5': [valid_rho_gat[3].astype(np.int64)], 'rho_Mean': [np.mean(valid_rho_gat, axis=0)], 'rho_std': [np.std(valid_rho_gat, axis=0)], 'sp_MinExpr_0_MinContact_0': [valid_sp_gat[0].astype(np.int64)], 'sp_MinExpr_5_MinContact_0': [valid_sp_gat[1].astype(np.int64)], 'sp_MinExpr_5_MinContact_1': [valid_sp_gat[2].astype(np.int64)], 'sp_MinExpr_5_MinContact_5': [valid_sp_gat[3].astype(np.int64)], 'sp_Mean': [np.mean(valid_sp_gat, axis=0)], 'sp_std': [np.std(valid_sp_gat, axis=0)]})
+            SummaryDF = pd.DataFrame(data={'Validation_chr': [options.valid_chr], 'Test_chr': [options.test_chr], 'NLL_GAT_MinExpr_0_MinContact_0': [valid_loss_gat[0]], 'NLL_GAT_MinExpr_5_MinContact_0': [valid_loss_gat[1]], 'NLL_GAT_MinExpr_5_MinContact_1': [valid_loss_gat[2]], 'NLL_GAT_MinExpr_5_MinContact_5': [valid_loss_gat[3]], 'NLL_GAT_Mean': [np.mean(valid_loss_gat, axis=0)], 'NLL_GAT_std': [np.std(valid_loss_gat, axis=0)], 'rho_MinExpr_0_MinContact_0': [valid_rho_gat[0]], 'rho_MinExpr_5_MinContact_0': [valid_rho_gat[1]], 'rho_MinExpr_5_MinContact_1': [valid_rho_gat[2]], 'rho_MinExpr_5_MinContact_5': [valid_rho_gat[3]], 'rho_Mean': [np.mean(valid_rho_gat, axis=0)], 'rho_std': [np.std(valid_rho_gat, axis=0)], 'sp_MinExpr_0_MinContact_0': [valid_sp_gat[0]], 'sp_MinExpr_5_MinContact_0': [valid_sp_gat[1]], 'sp_MinExpr_5_MinContact_1': [valid_sp_gat[2]], 'sp_MinExpr_5_MinContact_5': [valid_sp_gat[3]], 'sp_Mean': [np.mean(valid_sp_gat, axis=0)], 'sp_std': [np.std(valid_sp_gat, axis=0)]})
             SummaryDF = SummaryDF.reset_index(drop=True)
 
             ## write the summary metric data frame

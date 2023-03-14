@@ -10,9 +10,7 @@ python3exec='/home/sourya/packages/Anaconda3/anaconda3/envs/3CExpr/bin/python3'
 ## directory containing the scripts
 SCRIPTDIR="/home/sourya/Code"
 
-CONFIGFILE="configfile_GM12878.yaml"
-
-##========
+#========
 
 rule all:
 	input:
@@ -27,7 +25,7 @@ rule write_seq:
 	output:
 		seqdir=config['General']['OutDir'] + '/seqs_bed'
 	shell:
-		"{python3exec} {SCRIPTDIR}/write_seq.py -C {CONFIGFILE}"
+		"{python3exec} {SCRIPTDIR}/write_seq.py -g {config[General][Genome]} -c {config[General][ChrSize]} -O {config[General][OutDir]} -r {config[Loop][resolution]}"
 
 rule TSS_to_Bin:
 	""" 
@@ -38,7 +36,7 @@ rule TSS_to_Bin:
 	output:
 		tssdir=config['General']['OutDir'] + '/TSS'
 	shell:
-		"{python3exec} {SCRIPTDIR}/TSS_to_Bin.py -C {CONFIGFILE}"
+		"{python3exec} {SCRIPTDIR}/TSS_to_Bin.py -g {config[General][Genome]} -c {config[General][ChrSize]} -O {config[General][OutDir]} -r {config[Loop][resolution]} -T {config[General][GTF]}"
 
 rule FitHiChIP_Loop_to_Graph:
 	""" 
@@ -49,7 +47,7 @@ rule FitHiChIP_Loop_to_Graph:
 	output:
 		matdir=config['General']['OutDir'] + '/' + config['Loop']['SampleLabel'] + '/FitHiChIP_to_mat/contact_mat_FDR_' + str(config['Loop']['FDRThr'])
 	shell:
-		"{python3exec} {SCRIPTDIR}/FitHiChIP_Loop_to_Graph.py -C {CONFIGFILE}"
+		"{python3exec} {SCRIPTDIR}/FitHiChIP_Loop_to_Graph.py -g {config[General][Genome]} -c {config[General][ChrSize]} -O {config[General][OutDir]} -r {config[Loop][resolution]} -f {config[Loop][FDRThr]} -l {config[Loop][LoopFile]} -n {config[Loop][SampleLabel]}"
 
 rule data_read:
 	""" 
@@ -61,8 +59,9 @@ rule data_read:
 	output:
 		epitrackdir=config['General']['OutDir'] + '/Epigenome_Tracks'
 	shell:
-		"{python3exec} {SCRIPTDIR}/data_read.py -C {CONFIGFILE}"
+		"{python3exec} {SCRIPTDIR}/data_read.py -g {config[General][Genome]} -c {config[General][ChrSize]} -O {config[General][OutDir]} -r {config[Loop][resolution]} -B {config[General][BlackList]} -C {config[Epigenome][CAGEBinSize]} -E {config[Epigenome][EpiBinSize]} -X {config[Epigenome][CAGETrack]} -Y {config[Epigenome][EpiTrack]} -x {config[Epigenome][CAGELabel]} -y {config[Epigenome][EpiLabel]}"  
 	
+
 rule data_write:
 	""" 
 	Writing the epigenomic and HiC tracks into tensorflow compatible TFRecord format
@@ -75,7 +74,7 @@ rule data_write:
 	output:
 		tfrecorddir=config['General']['OutDir'] + '/' + config['Loop']['SampleLabel'] + '/TFRecord/contact_mat_FDR_' + str(config['Loop']['FDRThr'])
 	shell:
-		"{python3exec} {SCRIPTDIR}/data_write.py -C {CONFIGFILE}"
+		"{python3exec} {SCRIPTDIR}/data_write.py --Span {config[Model][Span]} --Offset {config[Model][Offset]} -g {config[General][Genome]} -c {config[General][ChrSize]} -O {config[General][OutDir]} -r {config[Loop][resolution]} -n {config[Loop][SampleLabel]} -f {config[Loop][FDRThr]} --fasta {config[General][Fasta]} -C {config[Epigenome][CAGEBinSize]} -E {config[Epigenome][EpiBinSize]} -X {config[Epigenome][CAGETrack]} -Y {config[Epigenome][EpiTrack]} -x {config[Epigenome][CAGELabel]} -y {config[Epigenome][EpiLabel]}"
 
 
 rule trainmodel:
@@ -92,7 +91,7 @@ rule trainmodel:
 	output:
 		trainoutdir=config['General']['OutDir'] + '/' + config['Loop']['SampleLabel'] + '/TrainingModel/contact_mat_FDR_' + str(config['Loop']['FDRThr'])
 	shell:
-		"{python3exec} {SCRIPTDIR}/Train_Epigenomic_Model.py -C {CONFIGFILE} -n {params.NumGATLayer} -v {params.ValidChrList} -t {params.TestChrList} -M {params.Model}"
+		"{python3exec} {SCRIPTDIR}/Train_Epigenomic_Model.py --Span {config[Model][Span]} --Offset {config[Model][Offset]} -g {config[General][Genome]} -O {config[General][OutDir]} -r {config[Loop][resolution]} -n {config[Loop][SampleLabel]} -f {config[Loop][FDRThr]} -C {config[Epigenome][CAGEBinSize]} -E {config[Epigenome][EpiBinSize]} -X {config[Epigenome][CAGETrack]} -Y {config[Epigenome][EpiTrack]} -x {config[Epigenome][CAGELabel]} -y {config[Epigenome][EpiLabel]} -n {params.NumGATLayer} -v {params.ValidChrList} -t {params.TestChrList} -M {params.Model}"
 
 
 rule testmodel:
@@ -108,6 +107,6 @@ rule testmodel:
 	output:
 		testoutdir=config['General']['OutDir'] + '/' + config['Loop']['SampleLabel'] + '/TestModel/contact_mat_FDR_' + str(config['Loop']['FDRThr'])
 	shell:
-		"{python3exec} {SCRIPTDIR}/Test_Epigenomic_Model.py -C {CONFIGFILE} -v {params.ValidChrList} -t {params.TestChrList} -M {params.Model}"
+		"{python3exec} {SCRIPTDIR}/Test_Epigenomic_Model.py --Span {config[Model][Span]} --Offset {config[Model][Offset]} -g {config[General][Genome]} -c {config[General][ChrSize]} -O {config[General][OutDir]} -r {config[Loop][resolution]} -n {config[Loop][SampleLabel]} -f {config[Loop][FDRThr]} -C {config[Epigenome][CAGEBinSize]} -E {config[Epigenome][EpiBinSize]} -X {config[Epigenome][CAGETrack]} -Y {config[Epigenome][EpiTrack]} -x {config[Epigenome][CAGELabel]} -y {config[Epigenome][EpiLabel]} -v {params.ValidChrList} -t {params.TestChrList} -M {params.Model}"
 
 

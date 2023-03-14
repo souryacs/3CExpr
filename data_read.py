@@ -28,8 +28,6 @@ import h5py
 import numpy as np
 import pyBigWig
 import intervaltree
-# import configparser
-import yaml
 import re
 import pandas as pd
 
@@ -209,14 +207,24 @@ def parse_options():
 	usage = 'usage: %prog [options]'
 	parser = OptionParser(usage)
 
-	parser.add_option('-C', dest='configfile', default=None, type='str', help='Configuration file. Mandatory parameter.'),  
-	
-	parser.add_option('-c', dest='clip', default=50000, type='float', help='Clip values post-summary to a maximum [Default: %default]'),
+    parser.add_option('-g', dest='refgenome', default=None, type='str', help='Reference Genome. Mandatory parameter.')
+    parser.add_option('-O', dest='BaseOutDir', default=None, type='str', help='Base output directory. Mandatory parameter.')
+    parser.add_option('-c', dest='chrsizefile', default=None, type='str', help='Reference Genome specific chromosome size file. Mandatory parameter.')
+    parser.add_option('-r', dest='Resolution', default=5000, type='int', help='Loop resolution. Default 5000 (5 Kb)')
+    parser.add_option('-B', dest='BlackListFile', default=None, type='str', help='Blacklist genome file. Mandatory parameter.')
+    parser.add_option('-C', dest='CAGEBinSize', default=5000, type='int', help='CAGE bin size. Default 5000 (5 Kb)')
+    parser.add_option('-E', dest='EpiBinSize', default=5000, type='int', help='Epigenomic track bin size. Default 100 bp')
+    parser.add_option('-X', dest='CAGETrackList', default=None, type='str', help='Comma or colon separated CAGE track list. Mandatory parameter.')
+    parser.add_option('-Y', dest='EpiTrackList', default=None, type='str', help='Comma or colon separated Epigenome track list. Mandatory parameter.')
+    parser.add_option('-x', dest='CAGELabelList', default=None, type='str', help='Comma or colon separated CAGE track label list. Mandatory parameter.')
+    parser.add_option('-y', dest='EpiLabelList', default=None, type='str', help='Comma or colon separated Epigenome track label list. Mandatory parameter.')
+
+	parser.add_option('--clip', dest='clip', default=50000, type='float', help='Clip values post-summary to a maximum [Default: %default]'),
 	parser.add_option('--crop', dest='crop_bp', default=0, type='int', help='Crop bp off each end [Default: %default]'),
-	parser.add_option('-s', dest='scale', default=1., type='float', help='Scale values by [Default: %default]'),
+	parser.add_option('--scale', dest='scale', default=1., type='float', help='Scale values by [Default: %default]'),
 	parser.add_option('--soft', dest='soft_clip', default=False, action='store_true', help='Soft clip values, applying sqrt to the execess above the threshold [Default: %default]'),
-	parser.add_option('-u', dest='sum_stat', default='max', help='Summary statistic to compute in windows [Default: %default]'),
-	# parser.add_option('-w',dest='pool_width', default=5000, type='int', help='Average pooling width [Default: %default]')
+	parser.add_option('--sum', dest='sum_stat', default='max', help='Summary statistic to compute in windows [Default: %default]'),
+	# parser.add_option('--width',dest='pool_width', default=5000, type='int', help='Average pooling width [Default: %default]')
 
 	(options, args) = parser.parse_args()
 	return options, args
@@ -228,29 +236,22 @@ def main():
 
 	options, args = parse_options()
 
-	## read the input configuration file
-	# config = configparser.ConfigParser()
-	# config.read(options.configfile)
+	refgenome = options.refgenome
+	BaseOutDir = options.BaseOutDir
+	chrsizefile = options.chrsizefile
+	Resolution = int(options.Resolution)
+	BlackListFile = options.BlackListFile
+	CAGEBinSize = int(options.CAGEBinSize)
+	EpiBinSize = int(options.EpiBinSize)
 
-	config_fp = open(options.configfile, "r")
-	config = yaml.load(config_fp, Loader=yaml.FullLoader)    
-
-	refgenome = config['General']['Genome']
-	BaseOutDir = config['General']['OutDir']
-	chrsizefile = config['General']['ChrSize']
-	Resolution = int(config['Loop']['resolution'])
-	BlackListFile = config['General']['BlackList']
-
-	CAGEBinSize = int(config['Epigenome']['CAGEBinSize'])
-	EpiBinSize = int(config['Epigenome']['EpiBinSize'])
 	## track list using comma or colon as delimiter
-	CAGETrackList = re.split(r':|,', config['Epigenome']['CAGETrack']) 
+	CAGETrackList = re.split(r':|,', options.CAGETrackList) 
 	## track list using comma or colon as delimiter
-	EpiTrackList = re.split(r':|,', config['Epigenome']['EpiTrack']) 
+	EpiTrackList = re.split(r':|,', options.EpiTrackList) 
 	## label list using comma or colon as delimiter
-	CAGELabelList = re.split(r':|,', config['Epigenome']['CAGELabel']) 
+	CAGELabelList = re.split(r':|,', options.CAGELabelList) 
 	## label list using comma or colon as delimiter
-	EpiLabelList = re.split(r':|,', config['Epigenome']['EpiLabel']) 
+	EpiLabelList = re.split(r':|,', options.EpiLabelList) 
 
 	## other parameters
 	clip = options.clip
