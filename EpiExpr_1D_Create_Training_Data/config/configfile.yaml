@@ -1,1 +1,52 @@
+#==================================== 
+## configuration file for EpiExpr-1D training data creation
+## Reference genome : hg19
+## Cell type: GM12878
+
+## It is advised to use the full pathnames for specifying files / directories
+#==================================== 
+
+##=========
+## Global parameters
+##=========
+General:
+  ## Reference genome: hg19 / hg38 / mm9 / mm10 / mm39
+  Genome: "hg19"
+
+  ## chromosome size file corresponding to the reference genome
+  ChrSize: "./chrom_hg19.sizes"
+
+  ## TSS file corresponding to the reference genome
+  TSS: "./hg19_TSS.gtf"
+
+  ## Base output directory which will store the results
+  OutDir: "./Results"
+
+  ## Blacklist file corresponding to the reference genome
+  BlackList: "./Blacklist_Genome/Blacklist/lists/hg19-blacklist.v2.bed"
+
+  ## Sample label
+  Label: "1D_GM12878_ENCFF915EIJ"
+
+##=========
+## Epigenome parameters
+##=========
+Epigenome:
+  
+  ## CAGE bin size
+  CAGEBinSize: 5000
+
+  ## epigenomic track resolution
+  EpiBinSize: 100
+
+  ## Table containing the list of epigenomic tracks and CAGE files
+  ## Maintain the headers and the table format
+  EpiTableFile: "./Table_Config.txt"
+
+##=========
+## Model parameters
+##=========
+Model:  
+  ## sliding window size - 2 Mb (specifically, power of 2)
+  Offset: 2000000
 
