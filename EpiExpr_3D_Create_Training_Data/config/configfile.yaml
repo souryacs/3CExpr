@@ -1,1 +1,65 @@
+#==================================== 
+## configuration file for EPI prediction
+## Reference genome : hg19
+## Cell type: GM12878
+## In addition to the Epigenomic tracks, we use GM12878 H3K27ac HiChIP interactions
+## computed using FitHiChIP (CIS peak to all), 20 Kb - 2 Mb
+#==================================== 
+
+##=========
+## Global parameters
+##=========
+General:
+  ## Reference genome: options are hg19, hg38, mm9, mm10 or mm39
+  Genome: "hg19"
+
+  ## chromosome size file corresponding to the reference genome
+  ChrSize: "./chrom_hg19.sizes"
+
+  ## TSS file corresponding to the reference genome
+  TSS: "./hg19_TSS.gtf"
+
+  ## Base output directory which will store the results
+  OutDir: "./Results_3D"
+
+  ## Blacklist file corresponding to the reference genome
+  BlackList: "./Blacklist/lists/hg19-blacklist.v2.bed"
+
+##=========
+## HiChIP loop related parameters
+##=========
+Loop:
+
+  ## loop label - follow this format  
+  ## FitHiChIP loops with b5000: bin size (resolution) is 5000 bp
+  ## L20000: lower distance threshold of the loops is 20000 bp (20 Kb)
+  ## U2000000: upper distance threshold of the loops is 2000000 bp (2 Mb)
+  ## FDR0.1: FDR threshold of the loop
+  LoopLabel: "FitHiChIP_P2A_b5000_L20000_U2000000_FDR0.1"
+  
+##=========
+## Epigenome parameters
+##=========
+Epigenome:
+  ## CAGE bin size
+  CAGEBinSize: 5000
+
+  ## epigenomic track resolution
+  EpiBinSize: 100
+
+  ## Table containing the list of epigenomic tracks and CAGE files
+  ## Maintain the headers and the table format
+  EpiTableFile: "./Table_Config.txt"
+
+##=========
+## Model parameters
+##=========
+Model:
+  ## sliding window size - 2 Mb (specifically, power of 2)
+  Offset: 2000000
+
+  ## Normalization technique of the edge features
+  ## 1: Use scikit learn normalize routine
+  ## 2. Use doubly stochastic normalization
+  EdgeNorm: 2
 

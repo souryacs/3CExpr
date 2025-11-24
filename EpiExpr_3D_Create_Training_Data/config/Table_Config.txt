@@ -1,0 +1,6 @@
+CellType	DataType	Path	
+GM12878	CAGE	./Data_EpiGraphReg_Paper_hg19/GM12878/CAGE/Deeptools_RPGC_binsize_5000bp/ENCFF915EIJ	
+GM12878	EPI	./Data_EpiGraphReg_Paper_hg19/GM12878/DNase/Deeptools_RPGC_binsize_100bp	
+GM12878	EPI	./Data_EpiGraphReg_Paper_hg19/GM12878/H3K27ac/Deeptools_RPGC_binsize_100bp	
+GM12878	EPI	./Data_EpiGraphReg_Paper_hg19/GM12878/H3K4me3/Deeptools_RPGC_binsize_100bp	
+GM12878	Loop	./Loops_Input_EpiExpr/HiChIP/hg19/FitHiChIP_Input_EpiExpr.txt
