@@ -1,0 +1,319 @@
+##===============
+## snakemake file for creating training data epigenomic data and chromatin interactions
+## This file is executed from the bash script
+##===============
+
+import os
+import shutil
+from pathlib import Path
+
+##============
+## class definition for individual CAGE or epigenomic tracks
+## three different fields per sample label
+## 1. Cell type (like GM12878)
+## 2. Track type (like CAGE or EPI)
+## 3. File path
+##============
+class TrackInfo(object):  
+    def __init__(self, CellType, TrackType, FilePath):
+        self.CellType = CellType
+        self.TrackType = TrackType
+        self.FilePath = FilePath
+
+    def _GetCellType(self):
+        return self.CellType
+
+    def _GetTrackType(self):
+        return self.TrackType
+
+    def _GetFilePath(self):
+        return self.FilePath
+
+##============
+## function to get the bigwig files
+##============
+def get_bigwig_files(inpdir):
+	extensions = ['.bw', '.bigwig', '.BigWig', '.bigWig']
+	return [str(file) for file in Path(inpdir).rglob("*") if file.suffix in extensions]
+
+##============
+## class definition for individual loop tracks (FitHiChIP)
+##============
+class LoopTrackInfo(object):  
+    def __init__(self, loopfile):
+        self.loopfile = loopfile
+
+    def _GetLoopFile(self):
+        return self.loopfile
+
+##============
+## read the Epigenomic track labels and corresponding directories
+## search the bigwig files in these directories, 
+## and store them (along with the Epigenomic track labels and cell type information) 
+## in a python dictionary structure
+##============
+def Read_EpiTrack_Table(samplefile):
+	f=open(samplefile, 'r')
+	EPITrack_DICT={}
+	x=0
+	for line in f:
+		## skip the first line - header
+		x=x+1
+		if x>1:
+			word=line.strip().split()
+			celltype = word[0]
+			tracktype = word[1]
+			inpdir = word[2]	## directory containing all the bigwig files
+
+			if (tracktype == "Loop"):
+				continue
+
+			# Use list comprehension to get bigwig files with specified extensions
+			bw_files = get_bigwig_files(inpdir)
+
+			## add individual files in the specified dictionary
+			for f in bw_files:
+				currfilepath = os.path.join(inpdir, f)
+				samplelabel = os.path.basename(f).split('.')[0]
+				if 0:
+					print("\n Processing celltype :", celltype, 
+							" tracktype : ", tracktype, 
+							" file : ", currfilepath, 
+							" samplelabel : ", samplelabel)
+				## add entry to the dictionary
+				EPITrack_DICT.setdefault(samplelabel, TrackInfo(celltype, tracktype, currfilepath))
+	return EPITrack_DICT
+
+##============
+## read the Loop track labels and corresponding file paths 
+## in a python dictionary structure
+##============
+def Read_LoopTrack_Table(samplefile):
+	f=open(samplefile, 'r')
+	LoopTrack_DICT={}
+	x=0
+	for line in f:
+		## skip the first line - header
+		x=x+1
+		if x>1:
+			word=line.strip().split()
+			celltype = word[0]
+			tracktype = word[1]
+			if (tracktype != "Loop"):
+				continue
+			
+			## for the loop contents, word 2 is the loop file, word 3 is the bias file
+			## dictionary key: celltype
+			loopfile = word[2]	## loop file 
+			LoopTrack_DICT.setdefault(celltype, LoopTrackInfo(loopfile))
+
+	return LoopTrack_DICT
+
+##=================
+## path of snakefile - check and rectify
+SCRIPTDIR = os.path.dirname(workflow.snakefile)
+WDIR = config['General']['OutDir']	## output directory
+workdir: WDIR
+
+RefGenome = str(config['General']['Genome'])			## Reference genome information
+EpiBinSize = str(config['Epigenome']['EpiBinSize'])
+CAGEBinSize = str(config['Epigenome']['CAGEBinSize'])
+Offset = config['Model']['Offset']						## middle window span
+LoopLabel = str(config['Loop']['LoopLabel'])			## loop label
+EdgeNorm = int(config['Model']['EdgeNorm'])
+
+## chromosomes
+if RefGenome == "hg19" or RefGenome == "hg38":
+	LIS_CHROM = [f'chr{i}' for i in range(1, 23)] + ['chrX']
+elif RefGenome == "mm9" or RefGenome == "mm10" or RefGenome == "mm39":
+	LIS_CHROM = [f'chr{i}' for i in range(1, 20)] + ['chrX']
+
+## keys: track labels
+## values: cell type, track type, bigwig files
+EPITrack_DICT = Read_EpiTrack_Table(config['Epigenome']['EpiTableFile'])
+
+## keys: Loop track keys (cell types)
+## values: loop file, bias file for each key
+LoopTrack_DICT = Read_LoopTrack_Table(config['Epigenome']['EpiTableFile'])
+
+## list of CAGE tracks
+CAGE_TRACK_KEYS = [k for k in EPITrack_DICT.keys() if EPITrack_DICT[k]._GetTrackType() == "CAGE"]
+
+## Epigenomic track keys
+EPI_TRACK_KEYS = [k for k in EPITrack_DICT.keys() if EPITrack_DICT[k]._GetTrackType() != "CAGE"]
+
+## FitHiChIP loop and bias track keys
+LOOP_TRACK_KEYS = LoopTrack_DICT.keys()
+
+## print paths of different executables
+Python3Exec = str(shutil.which('python3'))
+print("\n python3 executable :", str(Python3Exec))
+# print("\n nvcc executable :", str(shutil.which('nvcc')))
+print("CAGE_TRACK_KEYS :", str(CAGE_TRACK_KEYS)) 
+print("LOOP_TRACK_KEYS :", str(LOOP_TRACK_KEYS)) 
+print("EPI_TRACK_KEYS :", str(EPI_TRACK_KEYS)) 
+
+#========
+
+rule all:
+	input:
+		# expand(WDIR + '/seqs_bed/' + RefGenome + '/' + str(CAGEBinSize) + '/sequences_{chrom}.bed', chrom=LIS_CHROM)
+		# expand(WDIR + '/TSS/' + RefGenome + '/' + str(CAGEBinSize) + '/TSS_Info_{chrom}.csv', chrom=LIS_CHROM)
+		# expand(WDIR + '/Epigenome_Tracks/' + RefGenome + '/EPI_' + str(EpiBinSize) + 'bp_CAGE_' + str(CAGEBinSize) + 'bp/{tracklabel}/seq_cov_{chrom}.h5', chrom=LIS_CHROM, tracklabel=EPI_TRACK_KEYS)
+		# expand(WDIR + '/CAGE_Tracks/' + RefGenome + '/' + str(CAGEBinSize) + 'bp/{CAGEtracklabel}/seq_cov_{chrom}.h5', chrom=LIS_CHROM, CAGEtracklabel=CAGE_TRACK_KEYS)		
+		expand(WDIR + '/OUT_MODEL_EPI_' + str(EpiBinSize) + 'bp_CAGE_' + str(CAGEBinSize) + 'bp_3D_GAT/TrainingData/Offset_' + str(Offset) + '/EdgeNorm_' + str(EdgeNorm) + '/{loopcelltype}/' + LoopLabel + '/{CAGEtracklabel}/{chrom}/1.pkl', chrom=LIS_CHROM, CAGEtracklabel=CAGE_TRACK_KEYS, loopcelltype=LOOP_TRACK_KEYS)
+
+
+rule write_seq:
+	""" 
+	Get bin-specific information from reference chromosome size file
+	"""
+	output:
+		WDIR + '/seqs_bed/' + RefGenome + '/' + str(CAGEBinSize) + '/sequences_{chrom}.bed'
+	log:
+		stdout = WDIR + "/logs/write_seq_" + str(CAGEBinSize) + "bp_{chrom}.stdout", 
+		stderr = WDIR + "/logs/write_seq_" + str(CAGEBinSize) + "bp_{chrom}.stderr"
+	resources:
+		mem_mb=1000
+	run:
+		shell(
+			"{Python3Exec} {SCRIPTDIR}/write_seq.py \
+				-g {RefGenome} \
+				-s {config[General][ChrSize]} \
+				-c {wildcards.chrom} \
+				-O {WDIR} \
+				-r {CAGEBinSize} \
+				> {log.stdout} 2> {log.stderr}"
+		)
+
+
+rule TSS_to_Bin:
+	""" 
+	Get bin-specific information of TSS - list the genes and TSS falling within a particular bin
+	"""
+	input:
+		expand(WDIR + '/seqs_bed/' + RefGenome + '/' + str(CAGEBinSize) + '/sequences_{chrom}.bed', chrom=LIS_CHROM)
+	output:
+		WDIR + '/TSS/' + RefGenome + '/' + str(CAGEBinSize) + '/TSS_Info_{chrom}.csv'
+	log:
+		stdout = WDIR + "/logs/TSS_Info_" + str(CAGEBinSize) + "bp_{chrom}.stdout", 
+		stderr = WDIR + "/logs/TSS_Info_" + str(CAGEBinSize) + "bp_{chrom}.stderr"
+	resources:
+		mem_mb=1000
+	run:
+		shell(
+			"{Python3Exec} {SCRIPTDIR}/TSS_to_Bin.py \
+				-s {WDIR}/seqs_bed/{RefGenome}/{CAGEBinSize}/sequences_{wildcards.chrom}.bed \
+				-O {WDIR}/TSS/{RefGenome}/{CAGEBinSize} \
+				-c {wildcards.chrom} \
+				-T {config[General][TSS]} \
+				> {log.stdout} 2> {log.stderr}"
+		)
+
+
+rule data_read:
+	""" 
+	Read epigenomic tracks and convert them to .h5 format
+	"""
+	input:
+		expand(WDIR + '/seqs_bed/' + RefGenome + '/' + str(CAGEBinSize) + '/sequences_{chrom}.bed', chrom=LIS_CHROM)
+	output:
+		WDIR + '/Epigenome_Tracks/' + RefGenome + '/EPI_' + str(EpiBinSize) + 'bp_CAGE_' + str(CAGEBinSize) + 'bp/{tracklabel}/seq_cov_{chrom}.h5'
+	params:
+		## for each track label, infer the cell type, track type (CAGE / EPI) and file path
+		trackfile = lambda wildcards: EPITrack_DICT[wildcards.tracklabel]._GetFilePath(),
+		tracktype = lambda wildcards: EPITrack_DICT[wildcards.tracklabel]._GetTrackType()
+	log:
+		stdout = WDIR + "/logs/data_read_EPI_" + str(EpiBinSize) + "bp_{tracklabel}_{chrom}.stdout", 
+		stderr = WDIR + "/logs/data_read_EPI_" + str(EpiBinSize) + "bp_{tracklabel}_{chrom}.stderr"
+	resources:
+		mem_mb=4000
+	run:
+		shell(
+			"{Python3Exec} {SCRIPTDIR}/data_read.py \
+				-g {RefGenome} \
+				-C {CAGEBinSize} \
+				-E {EpiBinSize} \
+				-c {wildcards.chrom} \
+				-l {wildcards.tracklabel} \
+				-t {params.tracktype} \
+				-F {params.trackfile} \
+				-B {config[General][BlackList]} \
+				-O {WDIR} > {log.stdout} 2> {log.stderr}"
+		)
+
+
+rule data_read_CAGE:
+	""" 
+	Read epigenomic tracks and convert them to .h5 format
+	"""
+	input:
+		expand(WDIR + '/seqs_bed/' + RefGenome + '/' + str(CAGEBinSize) + '/sequences_{chrom}.bed', chrom=LIS_CHROM)
+	output:
+		WDIR + '/CAGE_Tracks/' + RefGenome + '/' + str(CAGEBinSize) + 'bp/{CAGEtracklabel}/seq_cov_{chrom}.h5'
+	params:
+		## for each track label, infer the cell type, track type (CAGE / EPI) and file path
+		trackfile = lambda wildcards: EPITrack_DICT[wildcards.CAGEtracklabel]._GetFilePath(),
+		tracktype = lambda wildcards: EPITrack_DICT[wildcards.CAGEtracklabel]._GetTrackType()
+	log:
+		stdout = WDIR + "/logs/data_read_CAGE_" + str(CAGEBinSize) + "bp_{CAGEtracklabel}_{chrom}.stdout", 
+		stderr = WDIR + "/logs/data_read_CAGE_" + str(CAGEBinSize) + "bp_{CAGEtracklabel}_{chrom}.stderr"
+	resources:
+		mem_mb=4000
+	run:
+		shell(
+			"{Python3Exec} {SCRIPTDIR}/data_read.py \
+				-g {RefGenome} \
+				-C {CAGEBinSize} \
+				-E {EpiBinSize} \
+				-c {wildcards.chrom} \
+				-l {wildcards.CAGEtracklabel} \
+				-t {params.tracktype} \
+				-F {params.trackfile} \
+				-B {config[General][BlackList]} \
+				-O {WDIR} > {log.stdout} 2> {log.stderr}"
+		)
+
+
+rule data_write:
+	""" 
+	Writing the epigenomic tracks into Pytorch format
+	"""
+	input:
+		expand(WDIR + '/seqs_bed/' + RefGenome + '/' + str(CAGEBinSize) + '/sequences_{chrom}.bed', chrom=LIS_CHROM),
+		expand(WDIR + '/TSS/' + RefGenome + '/' + str(CAGEBinSize) + '/TSS_Info_{chrom}.csv', chrom=LIS_CHROM),
+		expand(WDIR + '/Epigenome_Tracks/' + RefGenome + '/EPI_' + str(EpiBinSize) + 'bp_CAGE_' + str(CAGEBinSize) + 'bp/{tracklabel}/seq_cov_{chrom}.h5', chrom=LIS_CHROM, tracklabel=EPI_TRACK_KEYS),
+		expand(WDIR + '/CAGE_Tracks/' + RefGenome + '/' + str(CAGEBinSize) + 'bp/{CAGEtracklabel}/seq_cov_{chrom}.h5', chrom=LIS_CHROM, CAGEtracklabel=CAGE_TRACK_KEYS),
+	output:
+		WDIR + '/OUT_MODEL_EPI_' + str(EpiBinSize) + 'bp_CAGE_' + str(CAGEBinSize) + 'bp_3D_GAT/TrainingData/Offset_' + str(Offset) + '/EdgeNorm_' + str(EdgeNorm) + '/{loopcelltype}/' + LoopLabel + '/{CAGEtracklabel}/{chrom}/1.pkl'
+	log:	
+		stdout = WDIR + "/logs/data_write_3D_EPI_" + str(EpiBinSize) + "bp_CAGE_" + str(CAGEBinSize) + "bp_Offset_" + str(Offset) + "_{loopcelltype}_{CAGEtracklabel}_{chrom}.stdout", 
+		stderr = WDIR + "/logs/data_write_3D_EPI_" + str(EpiBinSize) + "bp_CAGE_" + str(CAGEBinSize) + "bp_Offset_" + str(Offset) + "_{loopcelltype}_{CAGEtracklabel}_{chrom}.stderr"
+	params:
+		SeqDir = WDIR + '/seqs_bed/' + RefGenome + '/' + str(CAGEBinSize),
+		loopfile = lambda wildcards: LoopTrack_DICT[wildcards.loopcelltype]._GetLoopFile(),
+		EpiTrackBaseDir = WDIR + '/Epigenome_Tracks/' + RefGenome + '/EPI_' + str(EpiBinSize) + 'bp_CAGE_' + str(CAGEBinSize) + 'bp',
+		CAGETrackBaseDir = WDIR + '/CAGE_Tracks/' + RefGenome + '/' + str(CAGEBinSize) + 'bp'
+	resources:
+		mem_mb=50000
+	run:		
+		shell(
+			"{Python3Exec} {SCRIPTDIR}/data_write.py \
+				-c {wildcards.chrom} \
+				-x {wildcards.CAGEtracklabel} \
+				-O {WDIR} \
+				--SeqDir {params.SeqDir} \
+				--EpiTrackBaseDir {params.EpiTrackBaseDir} \
+				--CAGETrackBaseDir {params.CAGETrackBaseDir} \
+				--Offset {Offset} \
+				--loopfile {params.loopfile} \
+				-L {wildcards.loopcelltype} \
+				-n {LoopLabel} \
+				--TrackTable {config[Epigenome][EpiTableFile]} \
+				-C {CAGEBinSize} \
+				-E {EpiBinSize} \
+				--EdgeNorm {EdgeNorm} \
+				> {log.stdout} 2> {log.stderr}"
+		)
+
+
