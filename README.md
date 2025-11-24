@@ -204,6 +204,10 @@ Script 2: script_Test.sh
 
 The files "df_all_predictions.txt" from both EpiExpr-1D and EpiExpr-3D models are used for performance evaluation. ** Scripts will be uploaded soon. **
 
+## Manuscript
+
+Bhattacharyya S, and Ay F, Deep learning-based prediction of gene expression from epigenomic signals and chromatin interactions (*under preparation*)
+
 
 ## Contact
 
